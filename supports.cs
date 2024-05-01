@@ -33,3 +33,63 @@ public interface IScriptContext
         HttpRequestMessage request,
         CancellationToken cancellationToken);
 }
+
+public class Script : ScriptBase
+{
+    public Script(IScriptContext context, CancellationToken cancellationToken)
+        : base(context, cancellationToken)
+    {
+    }
+
+    public override async Task<HttpResponseMessage> ExecuteAsync()
+    {
+        // Create a new HTTP request
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com");
+
+        // Use the SendAsync method from the IScriptContext interface to send the request
+        var response = await Context.SendAsync(request, CancellationToken);
+
+        return response;
+    }
+}
+
+public class MockScriptContext : IScriptContext
+{
+    public string CorrelationId => "test-correlation-id";
+
+    public string OperationId => "test-operation-id";
+
+    public HttpRequestMessage Request => new HttpRequestMessage();
+
+    public ILogger Logger => new MockLogger();
+
+    public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        // Use HttpClient to send the request
+        using var client = new HttpClient();
+        return await client.SendAsync(request, cancellationToken);
+    }
+}
+
+public class MockLogger : ILogger
+{
+    // Implement the ILogger methods here
+}
+
+public static void Main()
+{
+    // Create a mock context
+    var context = new MockScriptContext();
+
+    // Create a cancellation token
+    var cancellationToken = new CancellationToken();
+
+    // Create an instance of your script
+    var script = new Script(context, cancellationToken);
+
+    // Run your script
+    var response = script.ExecuteAsync().Result;
+
+    // Print the response
+    Console.WriteLine(response);
+}
