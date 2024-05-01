@@ -61,6 +61,15 @@ public class Script : ScriptBase
         // Create a new HTTP request
         var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com");
 
+        // Add a User-Agent header to the request
+        request.Headers.Add("User-Agent", "Chrome191");
+
+        // Copy headers from the context request to the new request
+        foreach (var header in Context.Request.Headers)
+        {
+            request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
         // Use the SendAsync method from the IScriptContext interface to send the request
         var response = await Context.SendAsync(request, CancellationToken);
 
