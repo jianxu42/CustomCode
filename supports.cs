@@ -1,43 +1,58 @@
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Create a mock context
+        var context = new MockScriptContext();
+
+        // Create a cancellation token
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        // Create an instance of your script
+        var script = new Script(context, cancellationToken);
+
+        // Run your script
+        var response = await script.ExecuteAsync();
+
+        // Print the response
+        Console.WriteLine(await response.Content.ReadAsStringAsync());
+    }
+}
+
 public abstract class ScriptBase
 {
-    // Context object
     public IScriptContext Context { get; }
-
-    // CancellationToken for the execution
     public CancellationToken CancellationToken { get; }
 
-    // Helper: Creates a StringContent object from the serialized JSON
-    public static StringContent CreateJsonContent(string serializedJson);
+    protected ScriptBase(IScriptContext context, CancellationToken cancellationToken)
+    {
+        Context = context;
+        CancellationToken = cancellationToken;
+    }
 
-    // Abstract method for your code
     public abstract Task<HttpResponseMessage> ExecuteAsync();
 }
 
 public interface IScriptContext
 {
-    // Correlation Id
     string CorrelationId { get; }
-
-    // Connector Operation Id
     string OperationId { get; }
-
-    // Incoming request
     HttpRequestMessage Request { get; }
-
-    // Logger instance
     ILogger Logger { get; }
-
-    // Used to send an HTTP request
-    // Use this method to send requests instead of HttpClient.SendAsync
-    Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken);
+    Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken);
 }
 
 public class Script : ScriptBase
 {
-    public Script(IScriptContext context, CancellationToken cancellationToken)
-        : base(context, cancellationToken)
+    public Script(IScriptContext context, CancellationToken cancellationToken) : base(context, cancellationToken)
     {
     }
 
@@ -56,16 +71,12 @@ public class Script : ScriptBase
 public class MockScriptContext : IScriptContext
 {
     public string CorrelationId => "test-correlation-id";
-
     public string OperationId => "test-operation-id";
-
     public HttpRequestMessage Request => new HttpRequestMessage();
-
     public ILogger Logger => new MockLogger();
 
     public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // Use HttpClient to send the request
         using var client = new HttpClient();
         return await client.SendAsync(request, cancellationToken);
     }
@@ -73,23 +84,26 @@ public class MockScriptContext : IScriptContext
 
 public class MockLogger : ILogger
 {
-    // Implement the ILogger methods here
-}
+    public IDisposable BeginScope<TState>(TState state) where TState : notnull
+    {
+        // To silence the nullable warning, we're returning a dummy IDisposable.
+        // This is common in mock or stub implementations where the scope functionality is not needed.
+        return new DisposableScope();
+    }
 
-public static void Main()
-{
-    // Create a mock context
-    var context = new MockScriptContext();
+    public bool IsEnabled(LogLevel logLevel) => false;
 
-    // Create a cancellation token
-    var cancellationToken = new CancellationToken();
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        // Simple console output to observe the behavior. Adjust the formatter usage as necessary.
+        Console.WriteLine(formatter(state, exception));
+    }
 
-    // Create an instance of your script
-    var script = new Script(context, cancellationToken);
-
-    // Run your script
-    var response = script.ExecuteAsync().Result;
-
-    // Print the response
-    Console.WriteLine(response);
+    private class DisposableScope : IDisposable
+    {
+        public void Dispose()
+        {
+            // Nothing to dispose in this mock implementation.
+        }
+    }
 }
