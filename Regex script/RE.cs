@@ -2,15 +2,30 @@ public class Script : ScriptBase
 {
 	public override async Task<HttpResponseMessage> ExecuteAsync()
 	{
+		string realOperationId = this.Context.OperationId;
+		// Resolve potential issue with base64 encoding of the OperationId
+		// Test and decode if it's base64 encoded
+		/*try
+        {
+            byte[] data = Convert.FromBase64String(this.Context.OperationId);
+            realOperationId = System.Text.Encoding.UTF8.GetString(data);
+        }
+        catch (FormatException)
+        {
+            // Not a base64 encoded string, use the original OperationId
+            realOperationId = this.Context.OperationId;
+        }*/
 		// Check if the operation ID matches what is specified in the OpenAPI definition of the connector
-		if (this.Context.OperationId == "RegexIsMatch")
+		if (realOperationId == "RegexIsMatch")
 		{
 			return await this.HandleRegexIsMatchOperation().ConfigureAwait(false);
 		}
 
 		// Handle an invalid operation ID
-		HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.BadRequest);
-		response.Content = CreateJsonContent($"Unknown operation ID '{this.Context.OperationId}'");
+		HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+		{
+			Content = CreateJsonContent($"Unknown operation ID '{this.Context.OperationId}'")
+		};
 		return response;
 	}
 
@@ -66,19 +81,46 @@ public class Script : ScriptBase
 				Content = CreateJsonContent(output.ToString())
 			};
 		}
-		catch (Exception ex)
+		catch (JsonException jsonEx)
 		{
-			// Handle exceptions and return a bad request response
+			// Handle JSON parsing exceptions
 			JObject errorOutput = new JObject
 			{
-				["error"] = ex.Message
+				["error"] = $"Invalid JSON format: {jsonEx.Message}"};
+			response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+			{
+				Content = CreateJsonContent(errorOutput.ToString())
+			};
+		}
+		catch (ArgumentException argEx)
+		{
+			// Handle argument exceptions
+			JObject errorOutput = new JObject
+			{
+				["error"] = argEx.Message
 			};
 			response = new HttpResponseMessage(HttpStatusCode.BadRequest)
 			{
 				Content = CreateJsonContent(errorOutput.ToString())
 			};
 		}
+		catch (Exception ex)
+		{
+			// Handle general exceptions
+			JObject errorOutput = new JObject
+			{
+				["error"] = $"An error occurred: {ex.Message}"};
+			response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+			{
+				Content = CreateJsonContent(errorOutput.ToString())
+			};
+		}
 
 		return response;
+	}
+
+	private HttpContent CreateJsonContent(string content)
+	{
+		return new StringContent(content, System.Text.Encoding.UTF8, "application/json");
 	}
 }
