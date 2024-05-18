@@ -36,21 +36,9 @@
                   "type": "string",
                   "description": "textToCheck"
                 },
-                "regex": {
+                "pattern": {
                   "type": "string",
-                  "description": "regex"
-                },
-                "option": {
-                  "title": "Regex Options",
-                  "description": "Value that specifies options for matching",
-                  "type": "string",
-                  "enum": [
-                    "None",
-                    "IgnoreCase",
-                    "Singleline",
-                    "Multiline"
-                  ],
-                  "default": "None"
+                  "description": "pattern"
                 }
               }
             }
