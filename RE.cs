@@ -26,14 +26,24 @@ public class Script : ScriptBase
 			// Get the values of textToCheck and regex
 			var textToCheck = (string)contentAsJson["textToCheck"];
 			var regexInput = (string)contentAsJson["regex"];
+			// Get the regex option (if any)
+			var option = (string)contentAsJson["option"] ?? "none";
 			// Validate inputs
 			if (string.IsNullOrEmpty(textToCheck) || string.IsNullOrEmpty(regexInput))
 			{
 				throw new ArgumentException("Both textToCheck and regex must be provided.");
 			}
 
-			// Create a Regex object
-			var rx = new Regex(regexInput);
+			// Determine RegexOptions based on the option value
+			RegexOptions options = option.ToLower() switch
+			{
+				"ignorecase" => RegexOptions.IgnoreCase,
+				"multiline" => RegexOptions.Multiline,
+				"singleline" => RegexOptions.Singleline,
+				_ => RegexOptions.None,
+			};
+			// Create a Regex object with options
+			var rx = new Regex(regexInput, options);
 			// Match the text with the regex
 			var match = rx.Match(textToCheck);
 			// Capture matched data
