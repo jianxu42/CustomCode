@@ -21,8 +21,8 @@
             "schema": {}
           }
         },
-        "summary": "001",
-        "description": "001",
+        "summary": "search",
+        "description": "search",
         "operationId": "RegexIsMatch",
         "parameters": [
           {
@@ -55,7 +55,16 @@
               }
             }
           }
-        ]
+        ],
+        "x-ms-openai-data": {
+          "openai-enabled": false,
+          "operations": [
+            {
+              "operationId": "RegexIsMatch",
+              "x-ms-require-user-confirmation": true
+            }
+          ]
+        }
       }
     }
   },
